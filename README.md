@@ -1,2 +1,2 @@
 # JToolsQgeoid
-Backed tools for data processing
+Backend tools for data extraction
