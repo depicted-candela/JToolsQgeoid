@@ -21,6 +21,7 @@ public class NaturalNeighbor {
 	 * @throws Exception 
 	 */
 	public NaturalNeighbor(double longitude, double latitude) {
+		modelSelection("", "");
 		printModel();
 		LV = fileReader();							// The list of Vertexes readed from the .gdf file
 		setBounds();								// Set boundaries of the map to interpolate
@@ -35,7 +36,8 @@ public class NaturalNeighbor {
 	 * @param latitude The array of latitude coordinates where the interpolation is computed
 	 * @throws Exception 
 	 */
-	public NaturalNeighbor(Double[] longitude, Double[] latitude) {
+	public NaturalNeighbor(Double[] longitude, Double[] latitude, String measurement, String model) {
+		modelSelection(measurement, model);
 		printModel();
 		LV = fileReader();							// The list of Vertexes readed from the .gdf file
 		setBounds();								// Set boundaries of the map to interpolate
@@ -166,7 +168,7 @@ public class NaturalNeighbor {
 	private List<Vertex> fileReader() {
 		List<Vertex> LV = new ArrayList<>();
 		try {
-			BufferedReader reader = new BufferedReader(new FileReader(FILE));
+			BufferedReader reader = new BufferedReader(new FileReader(MODEL));
 			while (!reader.readLine().startsWith("end_of_head")) {
 				continue;
 			}
@@ -219,7 +221,7 @@ public class NaturalNeighbor {
 	private void printModel() {
 		
 		try {
-			BufferedReader reader = new BufferedReader(new FileReader(FILE));
+			BufferedReader reader = new BufferedReader(new FileReader(MODEL));
 			System.out.println("El modelo global utilizado");
 			String line = reader.readLine();
 			while (true) {
@@ -234,11 +236,23 @@ public class NaturalNeighbor {
 		
 	}
 	
+	private void modelSelection(String measurement, String model) {
+		if (measurement.equals("altura_anomala") || measurement.equals("anomalous_height") || measurement.equals("")) {
+			if (model.equals("eigen-6c4") || model.equals("")) MODEL	= GRS80_EIGEN6C4_ANOMALOUS_HEIGHT;
+		} else if (measurement.equals("ondulacion_geoidal") || measurement.equals("geoid_undulation")) {
+			if (model.equals("eigen-6c4") || model.equals("")) MODEL	= GRS80_EIGEN6C4_GEOID_UNDULATION;
+		}
+	}
+	
 	private double[] XLIMS = new double[2];
 	private double[] YLIMS = new double[2];
 	private IncrementalTin ITIN;
 	private NaturalNeighborInterpolator NNI;
-	private static final String FILE = "/home/nicalcoca/eclipse-workspace/JToolsQgeoid/media/EIGEN-6C4_35efcdf6a22c20614a405b784b51e8532d7e9ef6e6fe3550da2a3e802a432ab0.gdf";
+//	private static final String WGS84_EIGEN6C4_ANOMALOUS_HEIGHT = "/home/depiction/Documents/geodesia/interoperabilidad/recursos/globales/wgs84/altura_anomala_superficial/EIGEN-6C4_d27d1a201f4ce240c85d7c72521b53ee0a1b11c2dabd5da80f056965599be574.gdf";
+//	private static final String WGS84_EIGEN6C4_GEOID_UNDULATION = "/home/depiction/Documents/geodesia/interoperabilidad/recursos/globales/wgs84/ondulacion_geoidal/EIGEN-6C4_43d6360b3cdab92632c04d89fcbc7c6b27b8f6957bd3c8b8925abbf2a360c080.gdf";
+	private static final String GRS80_EIGEN6C4_ANOMALOUS_HEIGHT = "/home/depiction/Documents/geodesia/interoperabilidad/recursos/globales/grs80/altura_anomala_superficial/EIGEN-6C4_d27d1a201f4ce240c85d7c72521b53ee0a1b11c2dabd5da80f056965599be574.gdf";
+	private static final String GRS80_EIGEN6C4_GEOID_UNDULATION = "/home/depiction/Documents/geodesia/interoperabilidad/recursos/globales/grs80/ondulacion_geoidal/EIGEN-6C4_c70e7337892362aa969231db1aa361b2c546b298a3f7c3e07fb08024063b7d73.gdf";
+	private String MODEL;
 	private List<Vertex> LV;
 	private static Double[] LONGITUDE_A;
 	private static Double[] LATITUDE_A;

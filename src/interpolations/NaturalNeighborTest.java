@@ -54,7 +54,7 @@ public class NaturalNeighborTest {
 		longs.toArray(lo);
 		Double[] la = new Double[latts.size()];
 		latts.toArray(la);
-		NaturalNeighbor nn = new NaturalNeighbor(lo, la);
+		NaturalNeighbor nn = new NaturalNeighbor(lo, la, "", "");
 		double[] interps = nn.getInterps();
 		for (int i = 0; i < interps.length; i++) {
 			if (longs.get(i) < -73.3 && longs.get(i) > -73.4) {
