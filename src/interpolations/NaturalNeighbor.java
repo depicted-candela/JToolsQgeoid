@@ -20,10 +20,10 @@ public class NaturalNeighbor {
 	 * @param latitude The latitude coordinate where the interpolation is computed
 	 * @throws Exception 
 	 */
-	public NaturalNeighbor(double longitude, double latitude) {
+	public NaturalNeighbor(double longitude, double latitude) throws Exception {
 		modelSelection("", "");
 		printModel();
-		LV = fileReader();							// The list of Vertexes readed from the .gdf file
+		LV = fileReader("", "");					// The list of Vertexes readed from the .gdf file
 		setBounds();								// Set boundaries of the map to interpolate
 		LONGITUDE = longitude;
 		LATITUDE = latitude;
@@ -36,10 +36,10 @@ public class NaturalNeighbor {
 	 * @param latitude The array of latitude coordinates where the interpolation is computed
 	 * @throws Exception 
 	 */
-	public NaturalNeighbor(Double[] longitude, Double[] latitude, String measurement, String model) {
+	public NaturalNeighbor(Double[] longitude, Double[] latitude, String measurement, String model) throws Exception {
 		modelSelection(measurement, model);
 		printModel();
-		LV = fileReader();							// The list of Vertexes readed from the .gdf file
+		LV = fileReader(measurement, model);		// The list of Vertexes readed from the .gdf file
 		setBounds();								// Set boundaries of the map to interpolate
 		LONGITUDE_A = longitude;
 		LATITUDE_A = latitude;
@@ -61,9 +61,9 @@ public class NaturalNeighbor {
 	 * Constructor to the interpolation without the point to interpolate
 	 * @throws Exception 
 	 */
-	public NaturalNeighbor() {
+	public NaturalNeighbor() throws Exception {
 		printModel();
-		LV = fileReader();							// The list of Vertexes readed from the .gdf file
+		LV = fileReader("", "");					// The list of Vertexes readed from the .gdf file
 		setBounds();								// Set boundaries of the map to interpolate
 		itinNniInitialiazer();
 	}
@@ -90,7 +90,7 @@ public class NaturalNeighbor {
 	}
 	
 	/**
-	 * Interpolates N in specific points
+	 * Interpolates the measurement in specific points
 	 * @return Interpolated value of N in a specific point
 	 * @throws Exception
 	 */
@@ -165,17 +165,18 @@ public class NaturalNeighbor {
 	 * Vertex to the Delaunay Triangulation ITIN.
 	 * @return List<Vertex> of points readed from the global geoid model
 	 */
-	private List<Vertex> fileReader() {
+	private List<Vertex> fileReader(String measurement, String model) throws Exception {
 		List<Vertex> LV = new ArrayList<>();
 		try {
 			BufferedReader reader = new BufferedReader(new FileReader(MODEL));
 			while (!reader.readLine().startsWith("end_of_head")) {
 				continue;
 			}
-			double[] data = new double[3];
-			String line = new String();
+			double[] data 	= new double[3];
+			String line 	= new String();
 			while((line = reader.readLine()) != null) {
-				data = lineParser(line);
+				int	i 		= measurementSegregatorGDF(measurement, model);
+				data 		= lineParser(line, i);
 				LV.add(new Vertex(data[0] - 360, data[1], data[2]));
 			}
 			reader.close();
@@ -185,17 +186,35 @@ public class NaturalNeighbor {
 		return LV;
 	}
 	
+	private int measurementSegregatorGDF(String measurement, String model) throws Exception {
+		if (measurement.equals("altura_anomala") || measurement.equals("anomalous_height") || measurement.equals("")) {
+			if (model.equals("eigen-6c4") || model.equals("")) {
+				return 3;
+			} else {
+				throw new Exception("Setting {" + measurement + ", " + model + "} is not available");
+			}
+		} else if (measurement.equals("ondulacion_geoidal") || measurement.equals("geoid_undulation")) {
+			if (model.equals("eigen-6c4") || model.equals("")) {
+				return 2;
+			} else {
+				throw new Exception("Setting {" + measurement + ", " + model + "} is not available");
+			}
+		} else {
+			throw new Exception("Setting {" + measurement + ", " + model + "} is not available");
+		}
+	}
+	
 	/**
 	 * From strings to three doubles of longitude, latitude and N.
 	 * @param line String of longitude, latitude and N
 	 * @return double[] of longitude, latitude and N
 	 */
-	private double[] lineParser(String line) {
+	private double[] lineParser(String line, int value) {
 		String[] arrd = line.trim().split("\\s+");
 		double[] doub = new double[3];
 		doub[0] = Double.parseDouble(arrd[0]);
 		doub[1] = Double.parseDouble(arrd[1]);
-		doub[2] = Double.parseDouble(arrd[2]);
+		doub[2] = Double.parseDouble(arrd[value]);
 		return doub;
 	}
 	
@@ -250,7 +269,7 @@ public class NaturalNeighbor {
 	private NaturalNeighborInterpolator NNI;
 //	private static final String WGS84_EIGEN6C4_ANOMALOUS_HEIGHT = "/home/depiction/Documents/geodesia/interoperabilidad/recursos/globales/wgs84/altura_anomala_superficial/EIGEN-6C4_d27d1a201f4ce240c85d7c72521b53ee0a1b11c2dabd5da80f056965599be574.gdf";
 //	private static final String WGS84_EIGEN6C4_GEOID_UNDULATION = "/home/depiction/Documents/geodesia/interoperabilidad/recursos/globales/wgs84/ondulacion_geoidal/EIGEN-6C4_43d6360b3cdab92632c04d89fcbc7c6b27b8f6957bd3c8b8925abbf2a360c080.gdf";
-	private static final String GRS80_EIGEN6C4_ANOMALOUS_HEIGHT = "/home/depiction/Documents/geodesia/interoperabilidad/recursos/globales/grs80/altura_anomala_superficial/EIGEN-6C4_d27d1a201f4ce240c85d7c72521b53ee0a1b11c2dabd5da80f056965599be574.gdf";
+	private static final String GRS80_EIGEN6C4_ANOMALOUS_HEIGHT = "/home/depiction/Documents/geodesia/interoperabilidad/recursos/globales/grs80/altura_anomala_superficial/EIGEN-6C4_c8adae46c592500bc7a1c46a5d076ecce0089518302485dfc6c8593de3021af7.gdf";
 	private static final String GRS80_EIGEN6C4_GEOID_UNDULATION = "/home/depiction/Documents/geodesia/interoperabilidad/recursos/globales/grs80/ondulacion_geoidal/EIGEN-6C4_c70e7337892362aa969231db1aa361b2c546b298a3f7c3e07fb08024063b7d73.gdf";
 	private String MODEL;
 	private List<Vertex> LV;
