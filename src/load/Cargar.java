@@ -32,7 +32,7 @@ public class Cargar {
 	 */
 	
 	public Cargar(String path, String file, String tipo, String via, String modelo, String url, String user, String password) throws Exception {
-		Read r 			= new Read(path, file);
+		Read r 			= new Read(path, file, tipo);
 		Estandarizar e 	= new Estandarizar(r.getData(), tipo, via, modelo);
 		Conexion c		= new Conexion(url, user, password);
 		constructorCargar(url, user, password, tipo, e, c.conn);
@@ -433,6 +433,10 @@ public class Cargar {
         } catch (SQLException e) {
         	e.printStackTrace();
         }
+	}
+	
+	private void cargarDerivas(Connection con) {
+		
 	}
 	
 	private void cargarPuntualmenteAerogravimetria(Connection con) {

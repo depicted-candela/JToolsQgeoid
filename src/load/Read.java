@@ -18,16 +18,19 @@ import java.util.Map;
  */
 public class Read {
 
-	public Read(String path, String file) throws IOException {
-		fromString(path, file);
+	public Read(String path, String file, String tipo) throws IOException {
+		constructorLector(tipo, path, file);
 	}
 	
-	/**
-	 * @param args
-	 * @throws IOException 
-	 */
+	private void constructorLector(String tipo, String path, String file) throws IOException {
+		if (tipo.equals("aerogravimetria")) {
+			this.tipo = tipo;
+			csvfile = fromString(path, file);
+			// ESCRIBIR DERIVA Y CONCATENACIÓN AQUÍ
+		}
+	}
 	
-	private void fromString(String path, String file) throws IOException {
+	private List<Map<String, String>> fromString(String path, String file) throws IOException {
         Path d_path = Paths.get(path);
         Path infile = Paths.get(file);
         Path path_infile = d_path.resolve(infile);
@@ -43,16 +46,26 @@ public class Read {
                 }
                 rows.add(row);
             }
+            return rows;
         } catch (IOException e) {
             e.printStackTrace();
         }
-        csvfile = rows;
+        return null;
 	}
 	
 	public List<Map<String, String>> getData() {
 		return csvfile;
 	}
 	
-	private List<Map<String, String>> csvfile;
+	public List<Map<String, String>> getDeriva() {
+		return csvDeriva;
+	}
+	
+	public List<Map<String, String>> getDerivaConcat() {
+		return csvDerivaConcat;
+	}
+	
+	private List<Map<String, String>> csvfile, csvDeriva, csvDerivaConcat;
+	private String tipo;
 
 }
