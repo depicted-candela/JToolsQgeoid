@@ -14,6 +14,16 @@ import java.io.IOException;
  */
 public class NaturalNeighbor {
 	
+	public NaturalNeighbor(Double[] longitude, Double[] latitude, String pathmodel, String measurement, String model) throws Exception {
+		modelSetter(pathmodel);
+		printModel();
+		LV = fileReader(measurement, model);		// The list of Vertexes readed from the .gdf file
+		setBounds();								// Set boundaries of the map to interpolate
+		LONGITUDE_A = longitude;
+		LATITUDE_A = latitude;
+		itinNniInitialiazer();
+	}
+	
 	/**
 	 * Constructor to the interpolation with a point to interpolate
 	 * @param longitude The longitude coordinate where the interpolation is computed
@@ -187,13 +197,13 @@ public class NaturalNeighbor {
 	}
 	
 	private int measurementSegregatorGDF(String measurement, String model) throws Exception {
-		if (measurement.equals("altura_anomala") || measurement.equals("anomalous_height") || measurement.equals("")) {
+		if (measurement.equals("altura_anomala")) {
 			if (model.equals("eigen-6c4") || model.equals("")) {
 				return 3;
 			} else {
 				throw new Exception("Setting {" + measurement + ", " + model + "} is not available");
 			}
-		} else if (measurement.equals("ondulacion_geoidal") || measurement.equals("geoid_undulation")) {
+		} else if (measurement.equals("ondulacion_geoidal")) {
 			if (model.equals("eigen-6c4") || model.equals("")) {
 				return 2;
 			} else {
@@ -238,7 +248,6 @@ public class NaturalNeighbor {
 	 * The model used for the interpolation.
 	 */
 	private void printModel() {
-		
 		try {
 			BufferedReader reader = new BufferedReader(new FileReader(MODEL));
 			System.out.println("El modelo global utilizado");
@@ -255,12 +264,22 @@ public class NaturalNeighbor {
 		
 	}
 	
-	private void modelSelection(String measurement, String model) {
-		if (measurement.equals("altura_anomala") || measurement.equals("anomalous_height") || measurement.equals("")) {
-			if (model.equals("eigen-6c4") || model.equals("")) MODEL	= GRS80_EIGEN6C4_ANOMALOUS_HEIGHT;
-		} else if (measurement.equals("ondulacion_geoidal") || measurement.equals("geoid_undulation")) {
-			if (model.equals("eigen-6c4") || model.equals("")) MODEL	= GRS80_EIGEN6C4_GEOID_UNDULATION;
+	private void modelSelection(String measurement, String model) throws Exception {
+		if (measurement.equals("altura_anomala")) {
+			if (model.equals("eigen-6c4")) {
+				modelSetter(GRS80_EIGEN6C4_ANOMALOUS_HEIGHT);
+			}
+		} else if (measurement.equals("ondulacion_geoidal")) {
+			if (model.equals("eigen-6c4")) {
+				modelSetter(GRS80_EIGEN6C4_GEOID_UNDULATION);
+			}
+		} else {
+			throw new Exception("La configuración con modelo " + model + " y variable " + measurement + " no existe");
 		}
+	}
+	
+	private void modelSetter(String modelpath) {
+		MODEL	= modelpath;
 	}
 	
 	private double[] XLIMS = new double[2];
