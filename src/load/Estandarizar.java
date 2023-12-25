@@ -1,55 +1,74 @@
 package load;
 
-import java.util.*;
-
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Scanner;
+import java.util.Map;
 import interpolations.NaturalNeighbor;
 
 public class Estandarizar {
 
-	public Estandarizar(Read lector, String tipo, String via, String model, Conexion c) throws Exception {
+	public Estandarizar(Read lector, String tipo, String via, String model, Conexion c, Scanner scan) throws Exception {
 		this.lector = lector;
-		eConstructor(tipo, via, model, c);
+		this.csvDatos = lector.getData();
+		eConstructor(tipo, via, model, c, scan);
 	}
 	
-	private void eConstructor(String tipo, String via, String model, Conexion c) throws Exception {
+	private void eConstructor(String tipo, String via, String model, Conexion c, Scanner scan) throws Exception {
+		Double[] alts = new Double[csvDatos.size()];
+		Double[] lats = new Double[csvDatos.size()];
+		Double[] aire_libre = new Double[csvDatos.size()];
+		Double[] c_aire_libre = new Double[csvDatos.size()];
 		if (tipo.equals("aerogravimetria")) {
 			lectorLongsLats();
 			if (via.equals("IDE")) {
 				zetaAereoIDE(model);
 				NAereoIDE(model);
-				if (lector.tieneDeriva()) {
-					MiscelaneaLectora ml = new MiscelaneaLectora("organizacion", c.conn);
-					if (ml.organizacion.equals("2")) {
-						dch = new DerivaCarsonH(ml.organizacion, lector.getDeriva(), lector.getDerivaConcat());
-					}
-				}
-				
 			} else if (via.equals("jar")) {
-				Scanner scanner = new Scanner(System.in);
 				System.out.println("Ingrese la ruta hacia el modelo geoidal global en formato .gdf para la variable Altura Anómala");
-				String pathmodel_z = scanner.nextLine();
+				String pathmodel_z = scan.nextLine();
 				System.out.println("Ingrese la ruta hacia el modelo geoidal global en formato .gdf para la variable Ondulación geoidal");
-				String pathmodel_N = scanner.nextLine();
-				scanner.close();
+				String pathmodel_N = scan.nextLine();
 				zetaAereoJar(pathmodel_z, model);
 				NAereoJar(pathmodel_N, model);
-				if (lector.tieneDeriva()) {
-					MiscelaneaLectora ml = new MiscelaneaLectora("organizacion", c.conn);
-					if (ml.organizacion.equals("2")) {
-						dch = new DerivaCarsonH(ml.organizacion, lector.getDeriva(), lector.getDerivaConcat());
-					}
-				}
 			} else {
 				throw new Exception("Esa via para carga no existe");
 			}
+			
+			MiscelaneaLectora ml = new MiscelaneaLectora("organizacion", c.conn, scan);
+			while(true) {
+				if (ml.organizacion.equals("2")) {
+					if (lector.tieneDeriva()) {
+						dch = new DerivaCarsonH(ml.organizacion, lector.getDeriva(), lector.getDerivaConcat());
+					}
+					break;
+				} else {
+					throw new Exception("No existe aún sistematización de la deriva de esa organización");
+				}
+			}
+			int i = 0;
+			for (Map<String, String> m : csvDatos) {
+				alts[i] 		= Double.parseDouble(m.get("RAW_ALT"));
+				lats[i] 		= Double.parseDouble(m.get("LAT"));
+				aire_libre[i] 	= Double.parseDouble(m.get("FREEAIR"));
+				c_aire_libre[i++] = Double.parseDouble(m.get("FACORR"));
+			}
+			CalcularGravedadIndirectaCarsonH cgi = new CalcularGravedadIndirectaCarsonH(lats, alts, aire_libre, c_aire_libre);
+			Double[] ng = cgi.grav_ind_car_h;
+			i = 0;
+			for (Map<String, String> m : csvDatos) {
+				m.put("GRAV_H", String.valueOf(ng[i++]));
+			}
 		}
+		csvEst = csvDatos;
 	}
 	
 	private void lectorLongsLats() {
-		longs 	= new Double[csvfile.size()];
-		lats 	= new Double[csvfile.size()];
+		longs 	= new Double[csvDatos.size()];
+		lats 	= new Double[csvDatos.size()];
 		int c 	= 0;
-		for (Map<String, String> row: csvfile) {
+		for (Map<String, String> row: csvDatos) {
 			longs[c] 	= Double.parseDouble(row.get("LONG"));
 			lats[c] 	= Double.parseDouble(row.get("LAT"));
 			c++;
@@ -60,9 +79,9 @@ public class Estandarizar {
 		NaturalNeighbor nnzeta 	= new NaturalNeighbor(longs, lats, "ondulacion_geoidal", modelo);
 		double[] interpszeta	= nnzeta.getInterps();
 		int c = 0;
-		for (Map<String, String> row: csvfile) {
+		for (Map<String, String> row: csvDatos) {
 			row.put("zeta", String.valueOf(interpszeta[c]));
-			csvest.add(row);
+			csvEst.add(row);
 			c++;
 		}
 	}
@@ -71,9 +90,9 @@ public class Estandarizar {
 		NaturalNeighbor nnN 	= new NaturalNeighbor(longs, lats, "ondulacion_geoidal", modelo);
 		double[] interpsN		= nnN.getInterps();
 		int c = 0;
-		for (Map<String, String> row: csvfile) {
+		for (Map<String, String> row: csvDatos) {
 			row.put("N", String.valueOf(interpsN[c]));
-			csvest.add(row);
+			csvEst.add(row);
 			c++;
 		}
 	}
@@ -82,9 +101,9 @@ public class Estandarizar {
 		NaturalNeighbor nnzeta 	= new NaturalNeighbor(longs, lats, pathmodel, "altura_anomala", modelo);
 		double[] interpszeta	= nnzeta.getInterps();
 		int c = 0;
-		for (Map<String, String> row: csvfile) {
+		for (Map<String, String> row: csvDatos) {
 			row.put("zeta", String.valueOf(interpszeta[c]));
-			csvest.add(row);
+			csvEst.add(row);
 			c++;
 		}
 	}
@@ -93,20 +112,20 @@ public class Estandarizar {
 		NaturalNeighbor nnN 	= new NaturalNeighbor(longs, lats, pathmodel, "ondulacion_geoidal", modelo);
 		double[] interpsN		= nnN.getInterps();
 		int c = 0;
-		for (Map<String, String> row: csvfile) {
+		for (Map<String, String> row: csvDatos) {
 			row.put("N", String.valueOf(interpsN[c]));
-			csvest.add(row);
+			csvEst.add(row);
 			c++;
 		}
 	}
 	
 	public List<Map<String, String>> getData() {
-		return csvest;
+		return csvEst;
 	}
 	
 	private Read lector;
-	private static List<Map<String, String>> csvfile;
-	public List<Map<String, String>> csvest = new ArrayList<>();
+	private List<Map<String, String>> csvDatos;
+	private List<Map<String, String>> csvEst = new ArrayList<>();
 	public DerivaCarsonH dch;
 	Double[] longs, lats;
 	

@@ -9,27 +9,46 @@ import meta.GRS80;
  * 
  */
 abstract class Calcular {
-
 	/**
 	 * 
 	 */
 	public Calcular(String medida) {
 		this.medida = medida;
 	}
-	
 	public String medida;
-	
+}
+
+class CalcularGravedadIndirectaCarsonH extends Calcular {
+	public CalcularGravedadIndirectaCarsonH(Double[] lats, Double[] altitudes, Double[] aire_libre, Double[] correccion_aire_libre) {
+		super("Gravedad en el aire calculada indirectamente para proyectos aerogravimétricos de Carson");
+		cgn				= new CalcularGravedadNormal(lats);
+		gravedad_n_h	= cgn.calcularLakshmananLi(altitudes);
+		grav_ind_car_h	= getGravedadIndirectaAire(aire_libre, correccion_aire_libre);
+		System.out.println("Determinadas gravedades normales con depencia de altura geométrica h según Lakshmanan y Li: https://library.seg.org/doi/10.1190/1.1487109");
+	}
+	private Double[] getGravedadIndirectaAire(Double[] aire_libre, Double[] correccion_aire_libre) {
+		Double[] gravedad_h = new Double[aire_libre.length];
+		for (int i = 0; i < aire_libre.length; i++) {
+			gravedad_h[i] = aire_libre[i] + gravedad_n_h[i] - correccion_aire_libre[i];
+		}
+		System.out.println("Determinadas gravedades en el aire según metodología de Carson Helicopters para proyectos aéreos");
+		return gravedad_h;
+	}
+	private CalcularGravedadNormal cgn;
+	public Double[] gravedad_n_h, grav_ind_car_h;
 }
 
 class CalcularGravedadNormal extends Calcular {
-	public CalcularGravedadNormal(String medida, Double[] lats) {
-		super(medida);
+	public CalcularGravedadNormal(Double[] lats) {
+		super("Gravedades normales");
+		this.lats = lats;
 	}
-	public Double[] calcularLakshmananLi(Double[] lats, Double[] h) {
+	public Double[] calcularLakshmananLi(Double[] h) {
+		this.medida = "Gravedades normales con dependenccia de altura geométrica h según Lakshmanan y Li: https://library.seg.org/doi/10.1190/1.1487109";
 		source = "https://library.seg.org/doi/10.1190/1.1487109";
-		Double[] Betas = Beta(lats);
-		Double[] zetasPrima = zetaPrima(Betas, h, lats);
-		Double[] rsPrima = rPrima(Betas, h, lats);
+		Double[] Betas = Beta();
+		Double[] zetasPrima = zetaPrima(Betas, h);
+		Double[] rsPrima = rPrima(Betas, h);
 		Double[] dsDoblePrima2 = dDoblePrima2(rsPrima, zetasPrima);
 		Double[] rsDoblePrima2 = rDoblePrima2(rsPrima, zetasPrima);
 		Double[] Ds = D(dsDoblePrima2);
@@ -45,7 +64,7 @@ class CalcularGravedadNormal extends Calcular {
 		Double[] LakshmananLi4 = calcularLakshmananLi4(bsPrima);
 		Double[] LakshmananLi = new Double[bsPrima.length];
 		for (int i = 0; i < lats.length; i++) {
-			LakshmananLi[i] = (1 / Ws[i]) * (LakshmananLi4[i] * LakshmananLi3[i] * LakshmananLi2[i] - LakshmananLi1[i]);
+			LakshmananLi[i] = ((1.0 / Ws[i]) * (LakshmananLi4[i] + LakshmananLi3[i] * LakshmananLi2[i] - LakshmananLi1[i])) * 100000;
 		}
 		return LakshmananLi;
 	}
@@ -59,14 +78,14 @@ class CalcularGravedadNormal extends Calcular {
 	private Double[] calcularLakshmananLi3(Double qZero, Double[] qsPrima, Double[] bsPrima, Double[] BPrima) {
 		Double[] LakshmananLi3 = new Double[BPrima.length];
 		for (int i = 0; i < BPrima.length; i++) {
-			LakshmananLi3[i] = (Math.pow(GRS80.w, 2) * Math.pow(GRS80.a, 2) * GRS80.E * qsPrima[i]) / ((bsPrima[i] + Math.pow(GRS80.E, 2)) * qZero);
+			LakshmananLi3[i] = (Math.pow(GRS80.w, 2) * Math.pow(GRS80.a, 2) * GRS80.E * qsPrima[i]) / ((Math.pow(bsPrima[i], 2) + Math.pow(GRS80.E, 2)) * qZero);
 		}
 		return LakshmananLi3;
 	}
 	private Double[] calcularLakshmananLi2(Double[] BPrima) {
 		Double[] LakshmananLi2 = new Double[BPrima.length];
 		for (int i = 0; i < BPrima.length; i++) {
-			LakshmananLi2[i] = (1 / 2) * Math.pow(Math.sin(BPrima[i]), 2) - 1 / 6;
+			LakshmananLi2[i] = 0.5 * Math.pow(Math.sin(BPrima[i]), 2) - 1 / 6.0;
 		}
 		return LakshmananLi2;
 	}
@@ -103,8 +122,8 @@ class CalcularGravedadNormal extends Calcular {
 	private Double qZero() {
 		Double qsZero1= ((3 * GRS80.b) / GRS80.E);
 		Double qsZero2= Math.atan(GRS80.E / GRS80.b);
-		Double qsZero3= (1 + ((3 * Math.pow(GRS80.b, 2)) / (Math.pow(GRS80.E, 2))));
-		Double qsZero = (1 / 2) * (qsZero3 * qsZero2 - qsZero1);
+		Double qsZero3= (1.0 + ((3.0 * Math.pow(GRS80.b, 2)) / (Math.pow(GRS80.E, 2))));
+		Double qsZero = (0.5) * (qsZero3 * qsZero2 - qsZero1);
 		return qsZero;
 	}
 	private Double[] W(Double[] bPrima, Double[] BPrima) {
@@ -175,27 +194,28 @@ class CalcularGravedadNormal extends Calcular {
 		}
 		return dsDoblePrima2;
 	}
-	private Double[] rPrima(Double[] betas, Double[] h, Double[] lats) {
+	private Double[] rPrima(Double[] betas, Double[] h) {
 		Double[] rPrima = new Double[h.length];
 		for (int i = 0; i < lats.length; i++) {
 			rPrima[i] = GRS80.a * Math.cos(Math.toRadians(betas[i])) + h[i] * Math.cos(Math.toRadians(lats[i]));
 		}
 		return rPrima;
 	}
-	private Double[] zetaPrima(Double[] betas, Double[] h, Double[] lats) {
+	private Double[] zetaPrima(Double[] betas, Double[] h) {
 		Double[] zetaPrima = new Double[lats.length];
 		for (int i = 0; i < lats.length; i++) {
 			zetaPrima[i] = GRS80.b * Math.tan(Math.toRadians(betas[i])) + h[i] * Math.sin(Math.toRadians(lats[i]));
 		}
 		return zetaPrima;
 	}
-	private Double[] Beta(Double[] lats) {
-		Double[] Betas = new Double[lats.length];
-		for (int i = 0; i < lats.length; i++) {
-			Betas[i] = (GRS80.b / GRS80.a) * Math.tan(Math.toRadians(lats[i]));
+	private Double[] Beta() {
+		Double[] Betas = new Double[this.lats.length];
+		int i = 0;
+		for (Double l : this.lats) {
+			Betas[i++] = (GRS80.b / GRS80.a) * Math.tan(Math.toRadians(l));
 		}
 		return Betas;
 	}
-	
+	private Double[] lats;
 	public static String source;
 }
