@@ -268,10 +268,14 @@ public class NaturalNeighbor {
 		if (measurement.equals("altura_anomala")) {
 			if (model.equals("eigen-6c4")) {
 				modelSetter(GRS80_EIGEN6C4_ANOMALOUS_HEIGHT);
+			} else {
+				throw new Exception("La configuración con modelo " + model + " y variable " + measurement + " no existe");
 			}
 		} else if (measurement.equals("ondulacion_geoidal")) {
 			if (model.equals("eigen-6c4")) {
 				modelSetter(GRS80_EIGEN6C4_GEOID_UNDULATION);
+			} else {
+				throw new Exception("La configuración con modelo " + model + " y variable " + measurement + " no existe");
 			}
 		} else {
 			throw new Exception("La configuración con modelo " + model + " y variable " + measurement + " no existe");
@@ -288,8 +292,8 @@ public class NaturalNeighbor {
 	private NaturalNeighborInterpolator NNI;
 //	private static final String WGS84_EIGEN6C4_ANOMALOUS_HEIGHT = "/home/depiction/Documents/geodesia/interoperabilidad/recursos/globales/wgs84/altura_anomala_superficial/EIGEN-6C4_d27d1a201f4ce240c85d7c72521b53ee0a1b11c2dabd5da80f056965599be574.gdf";
 //	private static final String WGS84_EIGEN6C4_GEOID_UNDULATION = "/home/depiction/Documents/geodesia/interoperabilidad/recursos/globales/wgs84/ondulacion_geoidal/EIGEN-6C4_43d6360b3cdab92632c04d89fcbc7c6b27b8f6957bd3c8b8925abbf2a360c080.gdf";
-	private static final String GRS80_EIGEN6C4_ANOMALOUS_HEIGHT = "/home/depiction/Documents/geodesia/interoperabilidad/recursos/globales/grs80/altura_anomala_superficial/EIGEN-6C4_c8adae46c592500bc7a1c46a5d076ecce0089518302485dfc6c8593de3021af7.gdf";
-	private static final String GRS80_EIGEN6C4_GEOID_UNDULATION = "/home/depiction/Documents/geodesia/interoperabilidad/recursos/globales/grs80/ondulacion_geoidal/EIGEN-6C4_c70e7337892362aa969231db1aa361b2c546b298a3f7c3e07fb08024063b7d73.gdf";
+	private static final String GRS80_EIGEN6C4_ANOMALOUS_HEIGHT = "/home/depiction/geodesia/sources/globales/grs80/altura_anomala_superficial/EIGEN-6C4_c8adae46c592500bc7a1c46a5d076ecce0089518302485dfc6c8593de3021af7.gdf";
+	private static final String GRS80_EIGEN6C4_GEOID_UNDULATION = "/home/depiction/geodesia/sources/globales/grs80/ondulacion_geoidal/EIGEN-6C4_c70e7337892362aa969231db1aa361b2c546b298a3f7c3e07fb08024063b7d73.gdf";
 	private String MODEL;
 	private List<Vertex> LV;
 	private static Double[] LONGITUDE_A;

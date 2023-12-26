@@ -18,6 +18,32 @@ import java.util.Scanner;
  */
 
 public class Cargar {
+	
+	public static void main(String[] args) throws Exception {
+		Scanner scanner = new Scanner(System.in);
+        try {
+        	if (args.length == 10) {
+        		new Cargar(args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], scanner, args[8], args[9]);
+        	} else if(args.length == 8) {
+        		new Cargar(args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], scanner, "", "");
+        	} else {
+        		new Cargar("/Documentos/Trabajo/IGAC/interoperabilidad/raw/aerial/1_2006_CUENCA_DEL_YARI_CAGUAN_GRAV_HI/datos",
+        				"1_2006_CUENCA_DEL_YARI_CAGUAN_GRAV_HI.csv",
+        				"aerogravimetria",
+        				"IDE",
+        				"eigen-6c4",
+        				"jdbc:postgresql://localhost:5432/geodesia",
+        				"depiction",
+        				"afsstgLm",
+        				scanner,
+        				"1_2006_CUENCA_DEL_YARI_CAGUAN_GRAV_HI_DRIFT.csv",
+        				"1_2006_CUENCA_DEL_YARI_CAGUAN_GRAV_HI_CONCAT.csv");
+        	}
+        } finally {
+            scanner.close(); // Close the scanner here when you're completely done with it
+        }
+
+	}
 
 	/**
 	 * @throws Exception 
@@ -311,6 +337,7 @@ public class Cargar {
 		    c.conn.commit();
 		    System.out.println("Proyecto aéreo subyacente creado");
 		    cargarPuntualmenteAerogravimetria(e, c);
+		    c.conn.close();
 		    System.out.println("Aerogravimetría puntual subyacente creada");
 		} catch (SQLException ex1) {
 		    System.out.println("Error occurred during insertion: " + ex1.getMessage());
