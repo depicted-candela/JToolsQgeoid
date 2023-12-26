@@ -337,7 +337,6 @@ public class Cargar {
 		    c.conn.commit();
 		    System.out.println("Proyecto aéreo subyacente creado");
 		    cargarPuntualmenteAerogravimetria(e, c);
-		    c.conn.close();
 		    System.out.println("Aerogravimetría puntual subyacente creada");
 		} catch (SQLException ex1) {
 		    System.out.println("Error occurred during insertion: " + ex1.getMessage());
