@@ -165,10 +165,12 @@ class DerivaCarsonH extends Deriva {
             }
         }
         //Concat
+        String Dir, Flt, Line;
         for (Map<String, String> mergedRow : mergedData) {
-        	String Dir = mergedRow.get("Dir");
-        	String Flt = mergedRow.get("Flt");
-        	if (Flt.length() < 2) {
+        	Dir = mergedRow.get("Dir");
+        	Flt = mergedRow.get("Flt");
+        	Line = mergedRow.get("LineID#");
+        	if (Flt.length() == 1 && Line.length() == 3) {
         		Flt = "0" + Flt;
         	}
         	mergedRow.put("LINE", Dir + Flt + mergedRow.get("LineID#"));

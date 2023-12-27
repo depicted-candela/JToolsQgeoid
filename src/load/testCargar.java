@@ -7,8 +7,8 @@ public class testCargar {
 	public static void main(String[] args) throws Exception {
 		Scanner scanner = new Scanner(System.in);
         try {
-    		new Cargar("/Documentos/Trabajo/IGAC/interoperabilidad/raw/aerial/1_2006_CUENCA_DEL_YARI_CAGUAN_GRAV_HI/datos",
-    				"1_2006_CUENCA_DEL_YARI_CAGUAN_GRAV_HI.csv",
+    		new Cargar("/home/depiction/Documents/geodesia/interoperabilidad/aerogravimetria/ecopetrol/3_2006_LLANOS_CENTRO_GRAV/datos",
+    				"3_2006_LLANOS_CENTRO_GRAV.csv",
     				"aerogravimetria",
     				"IDE",
     				"eigen-6c4",
@@ -16,8 +16,8 @@ public class testCargar {
     				"depiction",
     				"afsstgLm",
     				scanner,
-    				"1_2006_CUENCA_DEL_YARI_CAGUAN_GRAV_HI_DRIFT.csv",
-    				"1_2006_CUENCA_DEL_YARI_CAGUAN_GRAV_HI_CONCAT.csv");
+    				"",
+    				"");
         } finally {
             scanner.close(); // Close the scanner here when you're completely done with it
         }
