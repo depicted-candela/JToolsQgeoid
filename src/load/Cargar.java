@@ -274,16 +274,17 @@ public class Cargar {
 	}
 	
 	private void cargarPuntualmenteAerogravimetria(Estandarizar e, Conexion c) {
-		String id, or_id, N, _long, lat, grav_h, h_adj, h_cru, radar, zeta, line;
-		Double h_t;
+		String or_id, N, _long, lat, grav_h, h_adj, h_cru, radar, zeta, line;
+		Integer id			= construyeNuevoIdentificador(c.conn, "estandarizar_datoaereo");
 		Integer prys_id 	= detectUltimaFila(c.conn, "estandarizar_proyectos");
 		Integer pry_id 		= detectUltimaFila(c.conn, "estandarizar_proyectoaereo");
 		String ell_id		= extraeElipsoide(c, pry_id);
 		Integer linea_id	= detectUltimaFila(c.conn, "estandarizar_linea");
 		List<Map<String, String>> rows = e.getData();
+		Double h_t;
 		int rows_u = 0;
+		id	= construyeNuevoIdentificador(c.conn, "estandarizar_datoaereo");
 		for (Map<String, String> row : rows) {
-			id	= String.valueOf(construyeNuevoIdentificador(c.conn, "estandarizar_datoaereo"));
 			line 	= row.get("LINE");
 			if (!detectaLineas(line, prys_id, c)) {
 				cargarLinea(prys_id, line, c);
@@ -303,7 +304,7 @@ public class Cargar {
 			String sql = "INSERT INTO public.estandarizar_datoaereo (id, linea_id, pry_id, n, geom, grav_h, h_adj, h_cru, h_t, or_id, radar, zeta) "
 			        + "VALUES (?, ?, ?, ?, ST_GeomFromText('POINT(' || ? || ' ' || ? || ')', ?), ?, ?, ?, ?, ?, ?, ?)";
 			try (PreparedStatement pstmt = c.conn.prepareStatement(sql)) {
-			    pstmt.setLong(1, Integer.parseInt(id));
+			    pstmt.setLong(1, id++);
 			    pstmt.setInt(2, linea_id);
 			    pstmt.setInt(3, pry_id);
 			    pstmt.setDouble(4, Double.parseDouble(N));
@@ -318,7 +319,6 @@ public class Cargar {
 			    pstmt.setDouble(13, Double.parseDouble(radar));
 			    pstmt.setDouble(14, Double.parseDouble(zeta));
 			    pstmt.executeUpdate();
-			    c.conn.commit();
 			    System.out.println("1 punto aerogravimétrico cargado.");
 			} catch (SQLException ex) {
 			    ex.printStackTrace();
@@ -337,6 +337,7 @@ public class Cargar {
 		    c.conn.commit();
 		    System.out.println("Proyecto aéreo subyacente creado");
 		    cargarPuntualmenteAerogravimetria(e, c);
+		    c.conn.commit();
 		    System.out.println("Aerogravimetría puntual subyacente creada");
 		} catch (SQLException ex1) {
 		    System.out.println("Error occurred during insertion: " + ex1.getMessage());
