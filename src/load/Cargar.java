@@ -297,7 +297,7 @@ public class Cargar {
 			grav_h 	= row.get("GRAV_H");
 			h_adj 	= row.get("RAW_ALT");
 			h_cru 	= row.get("ADJ_ALT");
-			h_t		= Double.parseDouble(row.get("RAW_ALT")) - Double.parseDouble(row.get("TERRAIN"));
+			h_t		= Double.parseDouble(row.get("TERRAIN"));
 			or_id	= row.get("FID");
 			radar 	= row.get("RADAR");
 			zeta	= row.get("zeta");
