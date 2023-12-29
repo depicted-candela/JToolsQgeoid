@@ -41,6 +41,7 @@ public class Estandarizar {
 				if (ml.organizacion.equals("2")) {
 					if (lector.tieneDeriva()) {
 						dch = new DerivaCarsonH(ml.organizacion, lector.getDeriva(), lector.getDerivaConcat());
+						derivas = true;
 					}
 					break;
 				} else {
@@ -70,8 +71,7 @@ public class Estandarizar {
 		int c 	= 0;
 		for (Map<String, String> row: csvDatos) {
 			longs[c] 	= Double.parseDouble(row.get("LONG"));
-			lats[c] 	= Double.parseDouble(row.get("LAT"));
-			c++;
+			lats[c++] 	= Double.parseDouble(row.get("LAT"));
 		}
 	}
 	
@@ -80,9 +80,8 @@ public class Estandarizar {
 		double[] interpszeta	= nnzeta.getInterps();
 		int c = 0;
 		for (Map<String, String> row: csvDatos) {
-			row.put("zeta", String.valueOf(interpszeta[c]));
+			row.put("zeta", String.valueOf(interpszeta[c++]));
 			csvEst.add(row);
-			c++;
 		}
 	}
 	
@@ -91,9 +90,8 @@ public class Estandarizar {
 		double[] interpsN		= nnN.getInterps();
 		int c = 0;
 		for (Map<String, String> row: csvDatos) {
-			row.put("N", String.valueOf(interpsN[c]));
+			row.put("N", String.valueOf(interpsN[c++]));
 			csvEst.add(row);
-			c++;
 		}
 	}
 	
@@ -102,9 +100,8 @@ public class Estandarizar {
 		double[] interpszeta	= nnzeta.getInterps();
 		int c = 0;
 		for (Map<String, String> row: csvDatos) {
-			row.put("zeta", String.valueOf(interpszeta[c]));
+			row.put("zeta", String.valueOf(interpszeta[c++]));
 			csvEst.add(row);
-			c++;
 		}
 	}
 	
@@ -113,9 +110,8 @@ public class Estandarizar {
 		double[] interpsN		= nnN.getInterps();
 		int c = 0;
 		for (Map<String, String> row: csvDatos) {
-			row.put("N", String.valueOf(interpsN[c]));
+			row.put("N", String.valueOf(interpsN[c++]));
 			csvEst.add(row);
-			c++;
 		}
 	}
 	
@@ -123,10 +119,19 @@ public class Estandarizar {
 		return csvEst;
 	}
 	
+	public DerivaCarsonH getDeriva() {
+		return dch;
+	}
+	
+	public boolean tieneDeriva() {
+		return derivas;
+	}
+	
+	private boolean derivas = false;
 	private Read lector;
 	private List<Map<String, String>> csvDatos;
 	private List<Map<String, String>> csvEst = new ArrayList<>();
-	public DerivaCarsonH dch;
+	private DerivaCarsonH dch;
 	Double[] longs, lats;
 	
 }
@@ -170,7 +175,7 @@ class DerivaCarsonH extends Deriva {
         	Dir = mergedRow.get("Dir");
         	Flt = mergedRow.get("Flt");
         	Line = mergedRow.get("LineID#");
-        	if (Flt.length() == 1 && Line.length() == 3) {
+        	if (Flt.length() == 1 && Line.length() == 5) {
         		Flt = "0" + Flt;
         	}
         	mergedRow.put("LINE", Dir + Flt + mergedRow.get("LineID#"));
@@ -178,7 +183,11 @@ class DerivaCarsonH extends Deriva {
         this.mergedData = mergedData;
 	}
 	
-	public List<Map<String, String>> mergedData;
+	public List<Map<String, String>> getDerivas() {
+		return mergedData;
+	}
+	
+	private List<Map<String, String>> mergedData;
 	
 }
 

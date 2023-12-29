@@ -44,7 +44,7 @@ public class Cargar {
         }
 
 	}
-
+	
 	/**
 	 * @throws Exception 
 	 * 
@@ -178,8 +178,28 @@ public class Cargar {
         }
 	}
 	
-	private Boolean detectaDerivas(Conexion c) {
-		Integer l_id 	= detectUltimaFila(c.conn, "estandarizar_linea");
+	private Boolean buscaDerivas(Conexion c, Estandarizar e, Integer l_id) {
+		String sql = "SELECT name FROM public.estandarizar_linea WHERE id = " + l_id;
+	    try (Statement stmt2 = c.conn.createStatement();
+	    		ResultSet rs2 	= stmt2.executeQuery(sql)) {
+	    	if (rs2.next()) {
+	    		String l_name = rs2.getString("name");
+	    		List<Map<String, String>> derivas = e.getDeriva().getDerivas();
+	    		for (Map<String, String> d : derivas) {
+		    		if (d.get("LINE").equals(l_name)) {
+		    			return true;
+		    		}
+	    		}
+	    		return false;
+		    }
+	    } catch (SQLException ex) {
+	    	System.out.println("Error occurred: " + ex.getMessage());
+	    	ex.printStackTrace();
+	    }
+	    return null;
+	}
+	
+	private Boolean detectaDerivas(Conexion c, Estandarizar e, Integer l_id) {
     	String sql = "SELECT * FROM public.estandarizar_correcciones WHERE linea_id = " + l_id;
 	    try (Statement stmt2 = c.conn.createStatement();
 	    		ResultSet rs2 	= stmt2.executeQuery(sql)) {
@@ -220,6 +240,7 @@ public class Cargar {
         	pstmt.setString(2, line);
         	pstmt.setInt(3, pry_id_id);
         	int affectedRows = pstmt.executeUpdate();
+        	c.conn.commit();
         	System.out.println(affectedRows + " línea cargada.");
         } catch (SQLException e) {
         	e.printStackTrace();
@@ -229,14 +250,15 @@ public class Cargar {
 	private void cargarDeriva(String line, Conexion c) {
 		Integer l_id 	= detectUltimaFila(c.conn, "estandarizar_linea");
 		Integer id		= construyeNuevoIdentificador(c.conn, "estandarizar_correcciones");
-		String sql		= "INSERT INTO public.estandarizar_linea (id, deriva, marea, linea_id) VALUES (?, ?, ?, ?)";
+		String sql		= "INSERT INTO public.estandarizar_correcciones(id, deriva, marea, linea_id) VALUES (?, ?, ?, ?)";
         try (PreparedStatement pstmt = c.conn.prepareStatement(sql)) {
         	pstmt.setInt(1, id);
         	pstmt.setBoolean(2, true);
         	pstmt.setNull(3, java.sql.Types.NULL);
-        	pstmt.setNull(4, l_id);
+        	pstmt.setInt(4, l_id);
         	int affectedRows = pstmt.executeUpdate();
         	System.out.println(affectedRows + " corrección por deriva cargada.");
+        	c.conn.commit();
         } catch (SQLException e) {
         	e.printStackTrace();
         }
@@ -273,7 +295,7 @@ public class Cargar {
 		return null;
 	}
 	
-	private void cargarPuntualmenteAerogravimetria(Estandarizar e, Conexion c) {
+	private void cargarPuntualmenteAerogravimetria(Estandarizar e, Conexion c, Scanner scan) {
 		String or_id, N, _long, lat, grav_h, h_adj, h_cru, radar, zeta, line;
 		Integer id			= construyeNuevoIdentificador(c.conn, "estandarizar_datoaereo");
 		Integer prys_id 	= detectUltimaFila(c.conn, "estandarizar_proyectos");
@@ -284,48 +306,143 @@ public class Cargar {
 		Double h_t;
 		int rows_u = 0;
 		id	= construyeNuevoIdentificador(c.conn, "estandarizar_datoaereo");
-		for (Map<String, String> row : rows) {
-			line 	= row.get("LINE");
-			if (!detectaLineas(line, prys_id, c)) {
-				cargarLinea(prys_id, line, c);
-				linea_id	= detectUltimaFila(c.conn, "estandarizar_linea");
-				if(detectaDerivas(c)) cargarDeriva(line, c);
+		MiscelaneaLectora ml = new MiscelaneaLectora("tipo-carson", c.conn, scan);
+		
+		if (ml.tipoCarson.equals("1")) {
+			for (Map<String, String> row : rows) {
+				line 	= row.get("LINE");
+				if (!detectaLineas(line, prys_id, c)) {
+					cargarLinea(prys_id, line, c);
+					linea_id	= detectUltimaFila(c.conn, "estandarizar_linea");
+					if(!detectaDerivas(c, e, linea_id)) {
+						if (e.tieneDeriva() && buscaDerivas(c, e, linea_id)) cargarDeriva(line, c);
+					}
+				}
+				N 		= row.get("N");
+				_long	= row.get("LONG");
+				lat		= row.get("LAT");
+				grav_h 	= row.get("GRAV_H");
+				h_adj 	= row.get("RAW_ALT");
+				h_cru 	= row.get("ADJ_ALT");
+				h_t		= Double.parseDouble(row.get("TERRAIN"));
+				or_id	= row.get("FID");
+				radar 	= row.get("RADAR");
+				zeta	= row.get("zeta");
+				String sql = "INSERT INTO public.estandarizar_datoaereo (id, linea_id, pry_id, n, geom, grav_h, h_adj, h_cru, h_t, or_id, radar, zeta) "
+				        + "VALUES (?, ?, ?, ?, ST_GeomFromText('POINT(' || ? || ' ' || ? || ')', ?), ?, ?, ?, ?, ?, ?, ?)";
+				try (PreparedStatement pstmt = c.conn.prepareStatement(sql)) {
+				    pstmt.setLong(1, id++);
+				    pstmt.setInt(2, linea_id);
+				    pstmt.setInt(3, pry_id);
+				    pstmt.setDouble(4, Double.parseDouble(N));
+				    pstmt.setDouble(5, Double.parseDouble(_long)); // longitude
+				    pstmt.setDouble(6, Double.parseDouble(lat));  // latitude
+				    pstmt.setInt(7, Integer.parseInt(ell_id));    // SRID
+				    pstmt.setDouble(8, Double.parseDouble(grav_h));
+				    pstmt.setDouble(9, Double.parseDouble(h_adj));
+				    pstmt.setDouble(10, Double.parseDouble(h_cru));
+				    pstmt.setDouble(11, h_t);
+				    pstmt.setLong(12, Long.parseLong(or_id));     // Assuming or_id is a numeric type
+				    pstmt.setDouble(13, Double.parseDouble(radar));
+				    pstmt.setDouble(14, Double.parseDouble(zeta));
+				    pstmt.executeUpdate();
+				    System.out.println("1 punto aerogravimétrico cargado.");
+				} catch (SQLException ex) {
+				    ex.printStackTrace();
+				}
+				rows_u++;
 			}
-			N 		= row.get("N");
-			_long	= row.get("LONG");
-			lat		= row.get("LAT");
-			grav_h 	= row.get("GRAV_H");
-			h_adj 	= row.get("RAW_ALT");
-			h_cru 	= row.get("ADJ_ALT");
-			h_t		= Double.parseDouble(row.get("TERRAIN"));
-			or_id	= row.get("FID");
-			radar 	= row.get("RADAR");
-			zeta	= row.get("zeta");
-			String sql = "INSERT INTO public.estandarizar_datoaereo (id, linea_id, pry_id, n, geom, grav_h, h_adj, h_cru, h_t, or_id, radar, zeta) "
-			        + "VALUES (?, ?, ?, ?, ST_GeomFromText('POINT(' || ? || ' ' || ? || ')', ?), ?, ?, ?, ?, ?, ?, ?)";
-			try (PreparedStatement pstmt = c.conn.prepareStatement(sql)) {
-			    pstmt.setLong(1, id++);
-			    pstmt.setInt(2, linea_id);
-			    pstmt.setInt(3, pry_id);
-			    pstmt.setDouble(4, Double.parseDouble(N));
-			    pstmt.setDouble(5, Double.parseDouble(_long)); // longitude
-			    pstmt.setDouble(6, Double.parseDouble(lat));  // latitude
-			    pstmt.setInt(7, Integer.parseInt(ell_id));    // SRID
-			    pstmt.setDouble(8, Double.parseDouble(grav_h));
-			    pstmt.setDouble(9, Double.parseDouble(h_adj));
-			    pstmt.setDouble(10, Double.parseDouble(h_cru));
-			    pstmt.setDouble(11, h_t);
-			    pstmt.setLong(12, Long.parseLong(or_id));     // Assuming or_id is a numeric type
-			    pstmt.setDouble(13, Double.parseDouble(radar));
-			    pstmt.setDouble(14, Double.parseDouble(zeta));
-			    pstmt.executeUpdate();
-			    System.out.println("1 punto aerogravimétrico cargado.");
-			} catch (SQLException ex) {
-			    ex.printStackTrace();
+			System.out.println(rows_u + " puntos insertados.");
+		} else if (ml.tipoCarson.equals("2")) {
+			for (Map<String, String> row : rows) {
+				line 	= row.get("LINE");
+				N 		= row.get("N");
+				_long	= row.get("LONG");
+				lat		= row.get("LAT");
+				grav_h 	= row.get("GRAV_H");
+				h_adj 	= row.get("RAW_ALT");
+				h_cru 	= row.get("RAW_ALT");
+			    try {
+			    	h_t		= Double.parseDouble(row.get("TERRAIN"));
+			    } catch (NumberFormatException ex) {
+			    	h_t		= Double.parseDouble(row.get("TERRAIN") + ".0");
+			    }
+				
+				or_id	= row.get("FID");
+				radar 	= "-99999.898";
+				zeta	= row.get("zeta");
+				String sql = "INSERT INTO public.estandarizar_datoaereo (id, linea_id, pry_id, n, geom, grav_h, h_adj, h_cru, h_t, or_id, radar, zeta) "
+				        + "VALUES (?, ?, ?, ?, ST_GeomFromText('POINT(' || ? || ' ' || ? || ')', ?), ?, ?, ?, ?, ?, ?, ?)";
+				try (PreparedStatement pstmt = c.conn.prepareStatement(sql)) {
+				    pstmt.setLong(1, id++);
+				    pstmt.setInt(2, linea_id);
+				    pstmt.setInt(3, pry_id);
+				    pstmt.setDouble(4, Double.parseDouble(N));
+				    pstmt.setDouble(5, Double.parseDouble(_long)); // longitude
+				    pstmt.setDouble(6, Double.parseDouble(lat));  // latitude
+				    pstmt.setInt(7, Integer.parseInt(ell_id));    // SRID
+				    pstmt.setDouble(8, Double.parseDouble(grav_h));
+				    pstmt.setDouble(9, Double.parseDouble(h_adj));
+				    pstmt.setDouble(10, Double.parseDouble(h_cru));
+				    pstmt.setDouble(11, h_t);
+				    pstmt.setLong(12, Long.parseLong(or_id));     // Assuming or_id is a numeric type
+				    pstmt.setDouble(13, Double.parseDouble(radar));
+				    pstmt.setDouble(14, Double.parseDouble(zeta));
+				    pstmt.executeUpdate();
+				    System.out.println("1 punto aerogravimétrico cargado.");
+				} catch (SQLException ex) {
+				    ex.printStackTrace();
+				}
+				rows_u++;
 			}
-			rows_u++;
+			System.out.println(rows_u + " puntos insertados.");
+		} else if (ml.tipoCarson.equals("3")) {
+			for (Map<String, String> row : rows) {
+				line 	= row.get("LINE");
+				if (!detectaLineas(line, prys_id, c)) {
+					cargarLinea(prys_id, line, c);
+					linea_id	= detectUltimaFila(c.conn, "estandarizar_linea");
+					if(!detectaDerivas(c, e, linea_id)) {
+						if (e.tieneDeriva() && buscaDerivas(c, e, linea_id)) cargarDeriva(line, c);
+					}
+				}
+				N 		= row.get("N");
+				_long	= row.get("LONG");
+				lat		= row.get("LAT");
+				grav_h 	= row.get("GRAV_H");
+				h_adj 	= row.get("RAW_ALT");
+				h_cru 	= "-99999.898";
+				h_t		= Double.parseDouble(row.get("TERRAIN"));
+				or_id	= row.get("FID");
+				radar 	= "-99999.898";
+				zeta	= row.get("zeta");
+				String sql = "INSERT INTO public.estandarizar_datoaereo (id, linea_id, pry_id, n, geom, grav_h, h_adj, h_cru, h_t, or_id, radar, zeta) "
+				        + "VALUES (?, ?, ?, ?, ST_GeomFromText('POINT(' || ? || ' ' || ? || ')', ?), ?, ?, ?, ?, ?, ?, ?)";
+				try (PreparedStatement pstmt = c.conn.prepareStatement(sql)) {
+				    pstmt.setLong(1, id++);
+				    pstmt.setInt(2, linea_id);
+				    pstmt.setInt(3, pry_id);
+				    pstmt.setDouble(4, Double.parseDouble(N));
+				    pstmt.setDouble(5, Double.parseDouble(_long)); // longitude
+				    pstmt.setDouble(6, Double.parseDouble(lat));  // latitude
+				    pstmt.setInt(7, Integer.parseInt(ell_id));    // SRID
+				    pstmt.setDouble(8, Double.parseDouble(grav_h));
+				    pstmt.setDouble(9, Double.parseDouble(h_adj));
+				    pstmt.setDouble(10, Double.parseDouble(h_cru));
+				    pstmt.setDouble(11, h_t);
+				    pstmt.setLong(12, Long.parseLong(or_id));     // Assuming or_id is a numeric type
+				    pstmt.setDouble(13, Double.parseDouble(radar));
+				    pstmt.setDouble(14, Double.parseDouble(zeta));
+				    pstmt.executeUpdate();
+				    System.out.println("1 punto aerogravimétrico cargado.");
+				} catch (SQLException ex) {
+				    ex.printStackTrace();
+				}
+				rows_u++;
+			}
+			System.out.println(rows_u + " puntos insertados.");
 		}
-		System.out.println(rows_u + " puntos insertados.");
+
 	}
 	
 	private void cargarAerogravimetria(String tipo, Estandarizar e, Conexion c, Scanner scan) throws Exception {
@@ -336,7 +453,7 @@ public class Cargar {
 		    cargarProyectoAerogravimetrico(c.conn, scan);
 		    c.conn.commit();
 		    System.out.println("Proyecto aéreo subyacente creado");
-		    cargarPuntualmenteAerogravimetria(e, c);
+		    cargarPuntualmenteAerogravimetria(e, c, scan);
 		    c.conn.commit();
 		    System.out.println("Aerogravimetría puntual subyacente creada");
 		} catch (SQLException ex1) {

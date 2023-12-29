@@ -35,15 +35,16 @@ public class Read {
 	private void constructorLector(String tipo, String path, String file, Scanner scan, String deriva, String concatenador_deriva) throws IOException {
 		if (tipo.equals("aerogravimetria")) {
 			this.tipo = tipo;
-			csvDatos = fromString(path, file);
+			csvDatos = fromString(path, file, 1);
 			if (deriva.length() != 0 || concatenador_deriva.length() != 0) {
-				csvDeriva = fromString(path, deriva);
-				csvDerivaConcat = fromString(path, concatenador_deriva);
+				csvDeriva = fromString(path, deriva, 0);
+				csvDerivaConcat = fromString(path, concatenador_deriva, 0);
+				derivas = true;
 			}
 		}
 	}
 	
-	private List<Map<String, String>> fromString(String path, String file) throws IOException {
+	private List<Map<String, String>> fromString(String path, String file, int opt) throws IOException {
         Path d_path 		= Paths.get(path);
         Path infile 		= Paths.get(file);
         Path path_infile	= d_path.resolve(infile);
@@ -54,8 +55,29 @@ public class Read {
             while ((line = br.readLine()) != null) {
                 String[] values = line.split(",");
                 Map<String, String> row = new HashMap<>();
-                for (int i = 0; i < headers.length; i++) {
-                    row.put(headers[i], values[i]);
+                int c = 0;
+                if (opt == 0) {
+                    for (int i = 0; i < headers.length; i++) {
+                        row.put(headers[i], values[i]);
+                    }
+                    rows.add(row);
+                } else if (opt == 1) {
+                    for (int i = 0; i < headers.length; i++) {
+                    	if (headers[i].equals("LONG") &&  Math.abs(Double.parseDouble(values[i])) < 1) {
+                    		System.out.println("Longitud igual a cero");
+                    		c++;
+                    		continue;
+                    	} else if (headers[i].equals("LAT") && Math.abs(Double.parseDouble(values[i])) < 1) {
+                    		System.out.println("Latitud igual a cero");
+                    		c++;
+                    		continue;
+                    	} else {
+                    		row.put(headers[i], values[i]);
+                    	}
+                    }
+                }
+                if (c > 0) {
+                	continue;
                 }
                 rows.add(row);
             }
@@ -113,8 +135,27 @@ class MiscelaneaLectora {
 			case "reporte": leerReporte(scan); break;
 			case "archivo": leerArchivo(scan); break;
 			case "naturaleza": leerNaturaleza(con, scan); break;
+			case "tipo-carson": leerTipoCarson(scan); break;
 			default: break;
 		}
+	}
+	
+	private void leerTipoCarson(Scanner scanner) {
+		
+		System.out.println("TIPO CARSON.");
+        System.out.print("Tipo Carson: ");
+        String input = scanner.nextLine();
+
+        while(true) {
+            if (input.equals("1") || input.equals("2") || input.equals("3")) {
+            	tipoCarson = input;
+                break;
+            } else {
+                System.out.print("Ingrese el identificador correcto: ");
+                input = scanner.nextLine();
+            }
+        }
+        
 	}
 	
 	private void leerCC(Scanner scanner) {
@@ -389,6 +430,6 @@ class MiscelaneaLectora {
 	}
 	
 	public boolean cc;
-	public String geoide, usuario, elipsoide, organizacion, fuente, detalles, reporte, archivo, nombre, exactitud, fecha, naturaleza, csvDeriva, csvConcatDeriva;
+	public String geoide, usuario, elipsoide, organizacion, fuente, detalles, reporte, archivo, nombre, exactitud, fecha, naturaleza, csvDeriva, csvConcatDeriva, tipoCarson;
 	
 }
